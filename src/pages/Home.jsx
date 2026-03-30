@@ -1,17 +1,33 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  Search, Calendar, User, ArrowLeft, Star, MapPin, Wifi, CheckCircle, X,
-  ChevronLeft, ChevronRight // <--- Tambahkan ini
+  ArrowLeft, Star, MapPin, Wifi, CheckCircle, X,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { DATA } from '../data/data.js';
+import DateRangePicker from '../components/DateRangePicker';
+import CitySearchInput from '../components/CitySearchInput';
+import GuestRoomPicker from '../components/GuestRoomPicker';
+import StarFilterDropdown from '../components/StarFilterDropdown';
+
+// service API
+import { searchHotels } from '../service/hotelService.js';
 
 export default function Home() {
   const [activeApp, setActiveApp] = useState('este'); // 'este', 'view', 'heal'
   const [view, setView] = useState('home'); // 'home', 'detail'
   const [isLoading, setIsLoading] = useState(false); // State untuk Splash Screen
   const [selectedHotel, setSelectedHotel] = useState(null);
+  const [dateRange, setDateRange] = useState({ checkIn: null, checkOut: null });
+  const [selectedCity, setSelectedCity] = useState(null);
+  const [guestRoom, setGuestRoom] = useState({ rooms: 1, guests: 2 });
+  const [selectedStars, setSelectedStars] = useState(null); // State untuk filter bintang
+  const [hotelList, setHotelList] = useState([]); // State untuk daftar hotel
   
   const currentData = DATA[activeApp];
+
+  useEffect(() => {
+    handleSearch(); // Panggil pencarian saat komponen pertama kali mount
+  }, [dateRange, selectedCity, guestRoom, selectedStars]); // Tambahkan dependency agar search otomatis saat filter berubah
 
   // Function untuk handle perpindahan Tab dengan Splash Screen 2 detik
   const handleTabChange = (key) => {
@@ -34,6 +50,57 @@ export default function Home() {
     setView('detail');
   };
 
+  const handleDateRangeConfirm = ({ checkIn, checkOut }) => {
+    setDateRange({ checkIn, checkOut });
+  }
+
+  const handleSelectStarFilter = (selectedStars) => {
+    setSelectedStars(selectedStars);
+  }
+
+  const handleSearch = async () => {
+    // Trigger pencarian hotel dengan semua parameter yang sudah dipilih
+    let payload = {
+      "language": "en",
+      "userNationality": "ID",
+      "numRooms": guestRoom.rooms,
+      "numAdults": guestRoom.guests,
+      "numChildrens": 0,
+      "displayCurrency": "IDR",
+      "isExtended": true,
+      "page": 1,
+      "limit": 10,
+      // "filters": {
+      //   "starRating": [
+      //       true,
+      //       true,
+      //       true,
+      //       true,
+      //       true
+      //   ],
+      //   "priceRange": {
+      //       "min": 0,
+      //       "max": 3200000
+      //   }
+      // }
+    }
+    if (selectedCity) {
+      payload = {
+        ...payload,
+        "geoId": selectedCity.geoId,
+        "area": selectedCity.name,
+      }
+    }
+    if (dateRange?.checkIn) {
+      payload.checkInDate = dateRange.checkIn;
+    }
+    if (dateRange?.checkOut) {
+      payload.checkOutDate = dateRange.checkOut;
+    }
+    const res = await searchHotels(payload);
+    setHotelList(res?.data); // Update state dengan daftar hotel yang diterima
+  }
+
   const handleBack = () => {
     setView('home');
     setSelectedHotel(null);
@@ -52,7 +119,7 @@ export default function Home() {
           // TAMPILKAN KONTEN UTAMA JIKA TIDAK LOADING
           <>
             {/* --- APP SWITCHER --- */}
-            <div className="absolute bottom-0 left-0 right-0 z-50 flex justify-center space-x-2 p-2 bg-black/20 backdrop-blur-sm">
+            {/* <div className="absolute bottom-0 left-0 right-0 z-50 flex justify-center space-x-2 p-2 bg-black/20 backdrop-blur-sm">
               {Object.keys(DATA).map((key) => (
                 <button
                   key={key}
@@ -63,14 +130,20 @@ export default function Home() {
                   {key}
                 </button>
               ))}
-            </div>
+            </div> */}
 
             {/* --- MAIN CONTENT --- */}
             <div className="flex-1 overflow-y-auto pb-10 scrollbar-hide">
               {view === 'home' ? (
                 <HomeView
                   data={currentData}
+                  hotelList={hotelList}
                   onHotelClick={handleHotelClick}
+                  onDateRangeConfirm={handleDateRangeConfirm}
+                  onSelectCity={(city) => setSelectedCity(city)}
+                  onSelectGuestRoom={({ rooms, guests }) => setGuestRoom({ rooms, guests })}
+                  onSelectStar={handleSelectStarFilter}
+                  handleSearch={handleSearch}
                 />
               ) : (
                 <DetailView
@@ -111,7 +184,7 @@ function SplashScreen({ data }) {
 }
 
 // --- COMPONENT: HOME VIEW ---
-function HomeView({ data, onHotelClick }) {
+function HomeView({ data, hotelList, onHotelClick, onDateRangeConfirm, onSelectCity, onSelectGuestRoom, onSelectStar, handleSearch }) {
   const accentColor = "bg-[#013440]";
 
   return (
@@ -136,48 +209,30 @@ function HomeView({ data, onHotelClick }) {
             </h1>
           </div>
 
-          {/* Search Bar */}
           <div className="space-y-3">
-            <div className="bg-white rounded-full p-1.5 shadow-lg flex items-center">
-              <div className={`${accentColor} w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0`}>
-                <Search className="w-5 h-5" />
-              </div>
-              <input
-                type="text"
-                placeholder="pilih kota"
-                className="flex-1 ml-3 outline-none text-gray-700 font-medium placeholder:text-gray-500 bg-transparent text-lg"
+          {/* Search Bar */}
+            <CitySearchInput onSelect={(city) => onSelectCity(city)} />
+            <div className="flex space-x-2">
+              {/* Date Range Picker */}
+              <DateRangePicker
+                onConfirm={({ checkIn, checkOut }) => {
+                  // simpan ke state
+                  onDateRangeConfirm({ checkIn, checkOut });
+                }}
+              />
+              {/* Guest Room Picker */}
+              <GuestRoomPicker
+                onConfirm={({ rooms, guests }) => onSelectGuestRoom({ rooms, guests })}
               />
             </div>
-
-            <div className="flex space-x-2">
-              <div className="bg-white rounded-full p-1.5 shadow-lg flex items-center flex-1 w-[55%]">
-                <div className={`${accentColor} w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0`}>
-                  <Calendar className="w-5 h-5" />
-                </div>
-                <div className="ml-3 leading-tight overflow-hidden">
-                  <div className="text-gray-700 font-medium text-sm whitespace-nowrap">tgl check-in</div>
-                  <div className="text-gray-700 font-medium text-sm whitespace-nowrap">& check-out</div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-full p-1.5 shadow-lg flex items-center flex-1 w-[45%]">
-                <div className={`${accentColor} w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0`}>
-                  <User className="w-5 h-5" />
-                </div>
-                <div className="ml-3 text-sm text-gray-700 font-bold leading-tight">
-                  <div className="flex justify-between w-full">
-                    <span className="font-normal text-gray-500 mr-1">kamar:</span> 1
-                  </div>
-                  <div className="flex justify-between w-full">
-                    <span className="font-normal text-gray-500 mr-1">tamu:</span> 2
-                  </div>
-                </div>
-              </div>
+            <div>
+              {/* Star Filter Dropdown */}
+              <StarFilterDropdown onConfirm={(selectedStars) => onSelectStar(selectedStars)} accentColor={accentColor} />
             </div>
 
             <div className="flex justify-center pt-2">
-              <button className={`${accentColor} px-16 py-2 text-white font-bold rounded-full shadow-xl hover:opacity-90 transition-transform active:scale-95 text-lg`}>
-                Cari
+              <button onClick={() => handleSearch()} className={`${accentColor} px-16 py-2 text-white font-bold rounded-full shadow-xl hover:opacity-90 transition-transform active:scale-95 text-lg`}>
+                Search
               </button>
             </div>
           </div>
@@ -186,22 +241,22 @@ function HomeView({ data, onHotelClick }) {
 
       {/* Hotel List */}
       <div className="-mt-4 relative z-20 px-4 space-y-5 pb-10">
-        {data.hotels.map((hotel) => (
+        {hotelList.map((hotel) => (
           <div
-            key={hotel.id}
+            key={hotel?.id}
             // Hapus onClick di parent container agar swipe tidak mentrigger klik detail
             // Kita pindahkan onClick ke area Text di bawah
             className="bg-white rounded-2xl shadow-md overflow-hidden transition-transform"
           >
             {/* Panggil Image Slider disini */}
-            <ImageSlider images={hotel.images} heightClass="h-48" />
+            <ImageSlider images={hotel?.images} heightClass="h-48" />
 
             <div
               className="relative -mt-10 mb-10 mr-3 float-right z-30"
               onClick={() => onHotelClick(hotel)} // Price tag klik ke detail
             >
               <div className="bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-gray-800 shadow-sm cursor-pointer">
-                Rp {hotel.price}
+                Rp {hotel?.price}
               </div>
             </div>
 
@@ -211,8 +266,8 @@ function HomeView({ data, onHotelClick }) {
               onClick={() => onHotelClick(hotel)}
             >
               <h3 className="text-lg font-bold text-gray-800 mb-1">{hotel.name}</h3>
-              <p className="text-gray-500 text-sm line-clamp-2">{hotel.desc}</p>
-              <div className="mt-3 text-blue-600 text-sm font-semibold">Lihat Detail →</div>
+              <p className="text-gray-500 text-sm line-clamp-2">{hotel?.desc}</p>
+              <div className="mt-3 text-blue-600 text-sm font-semibold">See Detail →</div>
             </div>
           </div>
         ))}
