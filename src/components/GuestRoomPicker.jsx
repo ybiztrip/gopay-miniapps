@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { User, X, Check, Minus, Plus } from 'lucide-react';
 
@@ -17,7 +17,7 @@ function CounterRow({ label, sublabel, value, min, max, onChange }) {
           type="button"
           onClick={() => onChange(Math.max(min, value - 1))}
           disabled={value <= min}
-          className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all
+          className={`rounded-full border-2 flex items-center justify-center transition-all
             ${value <= min
               ? 'border-gray-200 text-gray-300 cursor-not-allowed'
               : 'border-[#013440] text-[#013440] hover:bg-[#013440] hover:text-white active:scale-95'
@@ -34,7 +34,7 @@ function CounterRow({ label, sublabel, value, min, max, onChange }) {
           type="button"
           onClick={() => onChange(Math.min(max, value + 1))}
           disabled={value >= max}
-          className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all
+          className={`rounded-full border-2 flex items-center justify-center transition-all
             ${value >= max
               ? 'border-gray-200 text-gray-300 cursor-not-allowed'
               : 'border-[#013440] text-[#013440] hover:bg-[#013440] hover:text-white active:scale-95'
@@ -107,7 +107,7 @@ function GuestRoomBottomSheet({ isOpen, onClose, rooms, guests, onConfirm }) {
           <h2 className="text-base font-bold text-gray-800">Room & Guest</h2>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-400 hover:bg-gray-200 transition"
+            className="flex items-center justify-center rounded-full bg-gray-100 text-gray-400 hover:bg-gray-200 transition"
           >
             <X size={15} />
           </button>

@@ -15,21 +15,9 @@ import apiClient from './apiClient';
  * @param {number} params.guests - Jumlah tamu
  * @param {string} params.app - 'este' | 'view' | 'heal'
  */
-export async function searchHotels(data) {
-  const response = await apiClient.post('/hotel/discovery', data);
+export async function searchHotels(data, signal) {
+  const response = await apiClient.post('/hotel/discovery', data, { signal });
   return response.data;
-}
-
-/**
- * Fetch detail satu hotel beserta kamar-kamarnya
- * @param {string|number} hotelId
- * @param {Object} params - checkIn, checkOut untuk ketersediaan kamar
- */
-export async function getHotelDetail(hotelId, { checkIn, checkOut } = {}) {
-  const response = await apiClient.get(`/hotel/${hotelId}`, {
-    params: { checkIn, checkOut },
-  });
-  return response.data; // { hotel: {...}, rooms: [...] }
 }
 
 /**
@@ -41,7 +29,31 @@ export async function getCitySuggestions(query) {
     "countryCode": "ID",
     "offset": "0",
     "limit": "15",
-    "key": query
+    "key": query,
+    "parentId": ""
   });
   return response.data;
 }
+
+/**
+ * Fetch list of rooms for a specific hotel
+ * @param {Object} data
+ * @param {string} data.propertyId
+ * @param {string} data.checkInDate   - format "YYYY-MM-DD"
+ * @param {string} data.checkOutDate  - format "YYYY-MM-DD"
+ * @param {number} data.numRooms
+ * @param {number} data.numAdults
+ * @param {number} data.numChildrens
+ * @param {string} data.displayCurrency
+ * @param {string} data.userNationality
+ * @param {string} data.language
+ */
+export const getRoomList = async (data) => {
+  try {
+    const response = await apiClient.post('/hotel/room-rate', data);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching room list:', error);
+    return null;
+  }
+};

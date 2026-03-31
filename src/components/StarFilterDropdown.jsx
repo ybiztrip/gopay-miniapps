@@ -1,21 +1,29 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Star, ChevronDown, X } from 'lucide-react';
 
+const toBoolArray = (starsSet) =>
+  [1, 2, 3, 4, 5].map((s) => starsSet.has(s));
+
+// Default: semua bintang terpilih
+const ALL_STARS = new Set([1, 2, 3, 4, 5]);
+
 export default function StarFilterDropdown({ onConfirm, accentColor = "bg-[#013440]" }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedStar, setSelectedStar] = useState(null); // null = belum pilih
+  const [selectedStars, setSelectedStars] = useState(new Set(ALL_STARS)); // default semua true
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
   const buttonRef = useRef(null);
   const dropdownRef = useRef(null);
 
+  // Kirim default value ke parent saat pertama kali render
+  useEffect(() => {
+    onConfirm(toBoolArray(new Set(ALL_STARS)));
+  }, []);
+
   const openDropdown = () => {
     if (buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
-      setDropdownPos({
-        top: rect.bottom + 8,
-        left: rect.left,
-      });
+      setDropdownPos({ top: rect.bottom + 8, left: rect.left });
     }
     setIsOpen(true);
   };
@@ -34,24 +42,33 @@ export default function StarFilterDropdown({ onConfirm, accentColor = "bg-[#0134
   }, []);
 
   const starOptions = [1, 2, 3, 4, 5];
-  const hasFilter = selectedStar !== null;
 
-  const selectStar = (star) => {
-    // Kalau klik bintang yang sama, toggle off (hapus filter)
-    const newVal = selectedStar === star ? null : star;
-    setSelectedStar(newVal);
-    onConfirm(newVal); // kirim single value, bukan array
-    setIsOpen(false);  // tutup dropdown setelah pilih
+  // hasFilter = true jika pilihan BUKAN semua terpilih (ada yang di-unselect)
+  const hasFilter = selectedStars.size < 5;
+
+  const toggleStar = (star) => {
+    const updated = new Set(selectedStars);
+    if (updated.has(star)) {
+      updated.delete(star);
+    } else {
+      updated.add(star);
+    }
+    setSelectedStars(updated);
+    onConfirm(toBoolArray(updated));
   };
 
-  const clearFilter = (e) => {
+  // Reset = kembalikan ke semua terpilih
+  const resetFilter = (e) => {
     e.stopPropagation();
-    setSelectedStar(null);
-    onConfirm(null);
+    const full = new Set(ALL_STARS);
+    setSelectedStars(full);
+    onConfirm(toBoolArray(full)); // [true, true, true, true, true]
     setIsOpen(false);
   };
 
-  const labelText = hasFilter ? `Star ${selectedStar}` : 'Star Rating';
+  const labelText = hasFilter
+    ? [...selectedStars].sort((a, b) => a - b).map((s) => `${s}★`).join(', ')
+    : 'Star Rating';
 
   return (
     <>
@@ -68,7 +85,7 @@ export default function StarFilterDropdown({ onConfirm, accentColor = "bg-[#0134
         {hasFilter ? (
           <X
             className="w-3.5 h-3.5 shrink-0 text-gray-400 hover:text-red-500 transition-colors"
-            onClick={clearFilter}
+            onClick={resetFilter}
           />
         ) : (
           <ChevronDown
@@ -89,11 +106,11 @@ export default function StarFilterDropdown({ onConfirm, accentColor = "bg-[#0134
           </p>
           <div className="space-y-1">
             {starOptions.map((star) => {
-              const isSelected = selectedStar === star;
+              const isSelected = selectedStars.has(star);
               return (
                 <button
                   key={star}
-                  onClick={() => selectStar(star)}
+                  onClick={() => toggleStar(star)}
                   className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all text-sm font-medium
                     ${isSelected
                       ? 'bg-yellow-50 text-yellow-800 border border-yellow-300'
@@ -115,12 +132,13 @@ export default function StarFilterDropdown({ onConfirm, accentColor = "bg-[#0134
             })}
           </div>
 
+          {/* Tombol reset muncul hanya jika ada yang di-unselect */}
           {hasFilter && (
             <button
-              onClick={clearFilter}
+              onClick={resetFilter}
               className="mt-2 w-full text-center text-xs text-red-400 hover:text-red-600 font-semibold py-1.5 border-t border-gray-100 transition-colors"
             >
-              Remove Filter
+              Reset Filter
             </button>
           )}
         </div>,

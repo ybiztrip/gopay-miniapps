@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Calendar, ChevronLeft, ChevronRight, X, Check } from 'lucide-react';
+import moment from 'moment';
 
 // ============================================================
 // UTILS
@@ -244,7 +245,7 @@ function CalendarBottomSheet({ isOpen, onClose, checkIn, checkOut, onConfirm }) 
             </h2>
             <button
               onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-black transition"
+              className="flex items-center justify-center rounded-full bg-gray-100 text-black transition"
             >
               <X size={20} />
             </button>
@@ -293,13 +294,13 @@ function CalendarBottomSheet({ isOpen, onClose, checkIn, checkOut, onConfirm }) 
 
         {/* Month nav */}
         <div className="flex items-center justify-between px-5 py-2 border-b border-gray-50 shrink-0">
-          <button onClick={prevMonth} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 transition">
+          <button onClick={prevMonth} className="flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 transition">
             <ChevronLeft size={17} />
           </button>
           <span className="text-xs text-gray-400 font-medium">
             {MONTHS[startMonth.month]} {startMonth.year} — {MONTHS[secondMonth.month]} {secondMonth.year}
           </span>
-          <button onClick={nextMonth} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 transition">
+          <button onClick={nextMonth} className="flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 transition">
             <ChevronRight size={17} />
           </button>
         </div>
@@ -362,8 +363,8 @@ function CalendarBottomSheet({ isOpen, onClose, checkIn, checkOut, onConfirm }) 
 // ============================================================
 export default function DateRangePicker({ onConfirm }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [checkIn, setCheckIn] = useState(null);
-  const [checkOut, setCheckOut] = useState(null);
+  const [checkIn, setCheckIn] = useState(() => moment().startOf('day').toDate());
+  const [checkOut, setCheckOut] = useState(() => moment().add(1, 'days').startOf('day').toDate());
 
   const handleConfirm = ({ checkIn: ci, checkOut: co }) => {
     setCheckIn(ci);

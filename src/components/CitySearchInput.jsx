@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, MapPin, Loader2, X } from 'lucide-react';
 import { getCitySuggestions } from '../service/hotelService';
@@ -165,7 +165,7 @@ function CityDropdown({ inputRef, results, query, loading, error, onSelect, onCl
 // Pemakaian di HomeView:
 //   <CitySearchInput onSelect={(city) => setSelectedCity(city)} />
 // ============================================================
-export default function CitySearchInput({ onSelect }) {
+export default function CitySearchInput({ onSelect, onClick }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -244,6 +244,7 @@ export default function CitySearchInput({ onSelect }) {
           // Buka lagi dropdown jika sudah ada hasil sebelumnya
           if (results.length > 0 && query.trim().length >= 2) setIsOpen(true);
         }}
+        onClick={onClick}
         placeholder="Select City"
         className="flex-1 ml-3 outline-none text-gray-700 font-medium placeholder:text-gray-400 bg-transparent text-base"
         autoComplete="off"

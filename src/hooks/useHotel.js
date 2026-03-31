@@ -3,8 +3,8 @@
 // Custom hook — abstraksi antara komponen UI dan service layer
 // ============================================================
 
-import { useState, useCallback } from 'react';
-import { searchHotels, getHotelDetail } from '../services/hotelService';
+import { useState, useCallback, useRef } from 'react';
+import { searchHotels, getRoomList } from '../service/hotelService.js';
 
 /**
  * Hook untuk pencarian hotel
@@ -14,18 +14,26 @@ import { searchHotels, getHotelDetail } from '../services/hotelService';
  *   <button onClick={() => search({ city, checkIn, checkOut, rooms, guests, app })}>Cari</button>
  */
 export function useHotels() {
-  const [hotels, setHotels]   = useState([]);
+  const [hotels, setHotels]   = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState(null);
+  const abortRef              = useRef(null);
 
-  const search = useCallback(async (params) => {
+  const search = useCallback(async (data) => {
+    // Batalkan request sebelumnya jika masih pending
+    if (abortRef.current) abortRef.current.abort();
+    abortRef.current = new AbortController();
+
     setLoading(true);
     setError(null);
+
     try {
-      const data = await searchHotels(params);
-      setHotels(data.hotels);
+      const res = await searchHotels(data, abortRef.current.signal);
+      setHotels(res?.data?.properties ?? []);
     } catch (err) {
+      // Abaikan error dari request yang sengaja di-cancel
       setError(err.message || 'Gagal memuat hotel');
+      setHotels([]); // reset agar UI tidak stuck
     } finally {
       setLoading(false);
     }
@@ -38,22 +46,19 @@ export function useHotels() {
  * Hook untuk detail satu hotel
  * Contoh pemakaian di DetailView:
  *
- *   const { hotel, rooms, loading, fetchDetail } = useHotelDetail();
- *   useEffect(() => { fetchDetail(hotelId, { checkIn, checkOut }); }, [hotelId]);
+ *   const { rooms, loading, error, fetchDetail } = useHotelDetail();
  */
 export function useHotelDetail() {
-  const [hotel, setHotel]     = useState(null);
   const [rooms, setRooms]     = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState(null);
 
-  const fetchDetail = useCallback(async (hotelId, dateRange) => {
+  const fetchDetail = useCallback(async (data) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await getHotelDetail(hotelId, dateRange);
-      setHotel(data.hotel);
-      setRooms(data.rooms);
+      const res = await getRoomList(data);
+      setRooms(res?.data ?? []);
     } catch (err) {
       setError(err.message || 'Gagal memuat detail hotel');
     } finally {
@@ -61,5 +66,5 @@ export function useHotelDetail() {
     }
   }, []);
 
-  return { hotel, rooms, loading, error, fetchDetail };
+  return { rooms, loading, error, fetchDetail };
 }
