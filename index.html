@@ -5,6 +5,13 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>gopay-miniapps</title>
+    <!-- Tambahkan ini untuk force light mode pada color-scheme -->
+    <meta name="color-scheme" content="light" />
+    <style>
+      /* Force light mode — mencegah browser override warna ke dark */
+      :root { color-scheme: light; }
+    </style>
+    <script src="https://gwk.gopayapi.com/sdk/stable/gp-container.min.js"></script>
   </head>
   <body>
     <div id="root"></div>
