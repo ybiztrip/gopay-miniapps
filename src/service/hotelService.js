@@ -16,7 +16,7 @@ import apiClient from './apiClient';
  * @param {string} params.app - 'este' | 'view' | 'heal'
  */
 export async function searchHotels(data, signal) {
-  const response = await apiClient.post('/hotel/discovery', data, { signal });
+  const response = await apiClient.post('/hotel/discovery', data, { signal, headers: { 'Authorization': `Bearer ${localStorage.getItem('gopayAuthToken') ?? 'token'}` } });
   return response.data;
 }
 
@@ -31,7 +31,7 @@ export async function getCitySuggestions(query) {
     "limit": "15",
     "key": query,
     "parentId": ""
-  });
+  }, { headers: { 'Authorization': `Bearer ${localStorage.getItem('gopayAuthToken') ?? 'token'}` } });
   return response.data;
 }
 
@@ -50,7 +50,7 @@ export async function getCitySuggestions(query) {
  */
 export const getRoomList = async (data) => {
   try {
-    const response = await apiClient.post('/hotel/room-rate', data);
+    const response = await apiClient.post('/hotel/room-rate', data, { headers: { 'Authorization': `Bearer ${localStorage.getItem('gopayAuthToken') ?? 'token'}` } });
     return response.data;
   } catch (error) {
     console.error('Error fetching room list:', error);

@@ -161,10 +161,10 @@ function GuestRoomBottomSheet({ isOpen, onClose, rooms, guests, onConfirm }) {
 // Pemakaian di HomeView:
 //   <GuestRoomPicker onConfirm={({ rooms, guests }) => { ... }} />
 // ============================================================
-export default function GuestRoomPicker({ onConfirm }) {
+export default function GuestRoomPicker({ onConfirm, value}) {
   const [isOpen, setIsOpen] = useState(false);
-  const [rooms, setRooms] = useState(1);
-  const [guests, setGuests] = useState(2);
+  const [rooms, setRooms] = useState(value?.rooms || 1);
+  const [guests, setGuests] = useState(value?.guests || 2);
 
   const handleConfirm = ({ rooms: r, guests: g }) => {
     setRooms(r);

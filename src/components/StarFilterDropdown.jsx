@@ -2,31 +2,45 @@ import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Star, ChevronDown, X } from 'lucide-react';
 
-const toBoolArray = (starsSet) =>
-  [1, 2, 3, 4, 5].map((s) => starsSet.has(s));
+const ALL_STARS = [1, 2, 3, 4, 5];
 
-// Default: semua bintang terpilih
-const ALL_STARS = new Set([1, 2, 3, 4, 5]);
-
-export default function StarFilterDropdown({ onConfirm, accentColor = "bg-[#013440]" }) {
+export default function StarFilterDropdown({ onConfirm, accentColor = "bg-[#013440]", value }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedStars, setSelectedStars] = useState(new Set(ALL_STARS)); // default semua true
-  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
+  const [selectedStars, setSelectedStars] = useState(new Set(value?.length ? value : ALL_STARS));
   const buttonRef = useRef(null);
   const dropdownRef = useRef(null);
 
-  // Kirim default value ke parent saat pertama kali render
   useEffect(() => {
-    onConfirm(toBoolArray(new Set(ALL_STARS)));
-  }, []);
+    if (value?.length) {
+      setSelectedStars(new Set(value));
+    }
+  }, [value]);
+
+  const updatePosition = () => {
+    if (buttonRef.current && dropdownRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      dropdownRef.current.style.top = `${rect.bottom + 8}px`;
+      dropdownRef.current.style.left = `${rect.left}px`;
+      dropdownRef.current.style.width = `${rect.width}px`;
+    }
+  };
 
   const openDropdown = () => {
-    if (buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      setDropdownPos({ top: rect.bottom + 8, left: rect.left });
-    }
     setIsOpen(true);
+    requestAnimationFrame(() => {
+      updatePosition();
+    });
   };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -41,10 +55,7 @@ export default function StarFilterDropdown({ onConfirm, accentColor = "bg-[#0134
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const starOptions = [1, 2, 3, 4, 5];
-
-  // hasFilter = true jika pilihan BUKAN semua terpilih (ada yang di-unselect)
-  const hasFilter = selectedStars.size < 5;
+  const hasFilter = selectedStars.size > 0;
 
   const toggleStar = (star) => {
     const updated = new Set(selectedStars);
@@ -54,15 +65,13 @@ export default function StarFilterDropdown({ onConfirm, accentColor = "bg-[#0134
       updated.add(star);
     }
     setSelectedStars(updated);
-    onConfirm(toBoolArray(updated));
+    onConfirm([...updated].sort((a, b) => a - b)); // kirim array number, e.g. [1, 3, 5]
   };
 
-  // Reset = kembalikan ke semua terpilih
   const resetFilter = (e) => {
     e.stopPropagation();
-    const full = new Set(ALL_STARS);
-    setSelectedStars(full);
-    onConfirm(toBoolArray(full)); // [true, true, true, true, true]
+    setSelectedStars(new Set());
+    onConfirm([]); // kosong = tidak ada filter bintang
     setIsOpen(false);
   };
 
@@ -72,7 +81,6 @@ export default function StarFilterDropdown({ onConfirm, accentColor = "bg-[#0134
 
   return (
     <>
-      {/* Trigger Button */}
       <button
         ref={buttonRef}
         onClick={() => isOpen ? setIsOpen(false) : openDropdown()}
@@ -94,18 +102,17 @@ export default function StarFilterDropdown({ onConfirm, accentColor = "bg-[#0134
         )}
       </button>
 
-      {/* Dropdown Panel via Portal */}
       {isOpen && createPortal(
         <div
           ref={dropdownRef}
-          style={{ top: dropdownPos.top, left: dropdownPos.left, minWidth: 200 }}
+          style={{ top: 0, left: 0, width: 200 }} // nilai awal, langsung ditimpa updatePosition
           className="fixed bg-white rounded-2xl shadow-2xl border border-gray-100 p-3 z-[99999]"
         >
           <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-2 px-1">
             Star Filter
           </p>
           <div className="space-y-1">
-            {starOptions.map((star) => {
+            {ALL_STARS.map((star) => {
               const isSelected = selectedStars.has(star);
               return (
                 <button
@@ -132,7 +139,6 @@ export default function StarFilterDropdown({ onConfirm, accentColor = "bg-[#0134
             })}
           </div>
 
-          {/* Tombol reset muncul hanya jika ada yang di-unselect */}
           {hasFilter && (
             <button
               onClick={resetFilter}

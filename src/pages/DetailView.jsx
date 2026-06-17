@@ -1,48 +1,50 @@
-import React from 'react';
-import { ArrowLeft, Star, MapPin, CheckCircle, X, Wifi, Car, Dumbbell, Waves, Coffee, Utensils, Wind, ShieldCheck, Sparkles } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowLeft, Star, MapPin, CheckCircle, X } from 'lucide-react';
+import moment from 'moment';
+
+// Components
 import ImageSlider from '../components/ImageSlider.jsx';
+import GuestFormView from '../components/GuestForm.jsx';
+
+// Helpers
 import currencyFormatter from '../helpers/currency.js';
 import buildImageList from '../helpers/buildImageList.js';
+import getFacilityHighlights from '../helpers/getFacilityHighlights.js';
 
-// Daftar fasilitas highlight beserta icon & label override
-const HIGHLIGHT_FACILITIES = [
-  { keywords: ['free wifi', 'wireless internet', 'wifi'],              icon: <Wifi className="w-3.5 h-3.5" />,      label: 'Free WiFi' },
-  { keywords: ['pool', 'outdoor pool', 'children\'s pool'],            icon: <Waves className="w-3.5 h-3.5" />,     label: 'Pool' },
-  { keywords: ['fitness', '24-hour fitness', 'gym'],                   icon: <Dumbbell className="w-3.5 h-3.5" />, label: 'Fitness' },
-  { keywords: ['breakfast'],                                           icon: <Utensils className="w-3.5 h-3.5" />, label: 'Breakfast' },
-  { keywords: ['restaurant'],                                          icon: <Utensils className="w-3.5 h-3.5" />, label: 'Restaurant' },
-  { keywords: ['parking', 'self parking', 'valet'],                    icon: <Car className="w-3.5 h-3.5" />,      label: 'Parking' },
-  { keywords: ['spa', 'full-service spa'],                             icon: <Sparkles className="w-3.5 h-3.5" />, label: 'Spa' },
-  { keywords: ['air conditioning', 'climate control'],                 icon: <Wind className="w-3.5 h-3.5" />,     label: 'AC' },
-  { keywords: ['coffee', 'café', 'cafe'],                              icon: <Coffee className="w-3.5 h-3.5" />,   label: 'Café' },
-  { keywords: ['smoke-free', 'non-smoking'],                           icon: <ShieldCheck className="w-3.5 h-3.5" />, label: 'Smoke-Free' },
-];
+export default function DetailView({ hotel, themeColor, onBack, rooms = [], isLoadingRooms = false, dateRange, onSuccess }) {
+  const [showPreview, setShowPreview] = useState(false);
+  const [bookingRoom, setBookingRoom] = useState(null);
 
-const MAX_HIGHLIGHTS = 10;
+  // ─── State GoPay Profile ───
+  const gopayProfile = JSON.parse(localStorage.getItem('gopayProfile'));
 
-function getFacilityHighlights(propertyFacilities = []) {
-  const facilityNames = propertyFacilities.map((f) => f.name?.toLowerCase() ?? '');
-  const matched = [];
-
-  for (const highlight of HIGHLIGHT_FACILITIES) {
-    const isMatch = highlight.keywords.some((kw) =>
-      facilityNames.some((name) => name.includes(kw))
-    );
-    if (isMatch) {
-      matched.push(highlight);
-      if (matched.length >= MAX_HIGHLIGHTS) break;
-    }
-  }
-
-  return matched;
-}
-
-export default function DetailView({ hotel, themeColor, onBack, rooms = [], isLoadingRooms = false }) {
-  const [showPreview, setShowPreview] = React.useState(false);
-
-  const mainImages = buildImageList(hotel?.propertyImages);
-
+  const mainImages        = buildImageList(hotel?.propertyImages);
   const facilityHighlights = getFacilityHighlights(rooms?.[0]?.propertyFacilities ?? []);
+
+  // ─── Handler: user klik "Choose" pada room ───
+  const handleChooseRoom = async (room) => {
+    setBookingRoom(room);
+  };
+
+  // Jika ada room yang dipilih, tampilkan GuestFormView sebagai layar penuh
+  if (bookingRoom) {
+    return (
+      <GuestFormView
+        room={bookingRoom}
+        hotel={hotel}
+        themeColor={themeColor}
+        checkIn={dateRange?.checkIn && moment(dateRange.checkIn).format('YYYY-MM-DD')}
+        checkOut={dateRange?.checkOut && moment(dateRange.checkOut).format('YYYY-MM-DD')}
+        gopayProfile={gopayProfile}          // ✅ pass profile ke GuestForm untuk pre-fill data
+        onBack={() => setBookingRoom(null)}
+        onProceedPayment={() => {
+          console.log('Proceed to payment');
+          setBookingRoom(null);
+          onSuccess?.();
+        }}
+      />
+    );
+  }
 
   return (
     <>
@@ -54,14 +56,12 @@ export default function DetailView({ hotel, themeColor, onBack, rooms = [], isLo
             heightClass="h-72"
             onClick={() => setShowPreview(true)}
           />
-
           <button
             onClick={onBack}
             className="absolute top-4 left-4 bg-white/20 backdrop-blur-md p-2 rounded-full text-white hover:bg-white/40 transition z-20"
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
-
           <div className="absolute bottom-4 right-4 bg-black/50 text-white text-xs px-2 py-1 rounded backdrop-blur-sm pointer-events-none z-20">
             {mainImages?.length ?? 0} Photos
           </div>
@@ -80,26 +80,26 @@ export default function DetailView({ hotel, themeColor, onBack, rooms = [], isLo
 
           {/* Rating + Facility Highlights */}
           <div className="mb-6 border-b pb-5 space-y-3">
-            {/* Star Rating Row */}
             <div className="flex items-center">
               <div className="flex items-center bg-yellow-100 px-2.5 py-1 rounded-lg">
                 <Star className="w-4 h-4 text-yellow-600 fill-yellow-600 mr-1" />
                 <span className="font-bold text-yellow-800">{hotel?.propertySummary?.starRating}</span>
               </div>
             </div>
-
-            {/* Facility Highlight Chips */}
             {facilityHighlights.length > 0 && (
               <div className="flex flex-wrap gap-2">
-                {facilityHighlights.map((facility, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center gap-1.5 bg-blue-50 text-blue-700 text-xs font-medium px-2.5 py-1.5 rounded-full border border-blue-100"
-                  >
-                    {facility.icon}
-                    {facility.label}
-                  </div>
-                ))}
+                {facilityHighlights.map((facility, idx) => {
+                  const Icon = facility.icon;
+                  return (
+                    <div
+                      key={idx}
+                      className="flex items-center gap-1.5 bg-blue-50 text-blue-700 text-xs font-medium px-2.5 py-1.5 rounded-full border border-blue-100"
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                      {facility.label}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -135,12 +135,12 @@ export default function DetailView({ hotel, themeColor, onBack, rooms = [], isLo
                   .join(', ');
 
                 const nightlyPrice = room?.nightlyRates?.displaySellAmount;
-                const currency = room?.nightlyRates?.displayCurrency;
-                const taxCharge = room?.charges?.find((c) => c.type === 'TAX');
+                const currency     = room?.nightlyRates?.displayCurrency;
+                const taxCharge    = room?.charges?.find((c) => c.type === 'TAX');
 
                 return (
                   <div
-                    key={room?.roomId ?? index}
+                    key={`${room?.roomId ?? 'room'}-${index}`}
                     className="border border-gray-200 rounded-2xl shadow-sm hover:shadow-md transition-shadow overflow-hidden bg-white"
                   >
                     {/* Room Image Slider */}
@@ -174,7 +174,6 @@ export default function DetailView({ hotel, themeColor, onBack, rooms = [], isLo
                       <h3 className="font-bold text-gray-800 text-base leading-tight mb-2">
                         {room?.roomName}
                       </h3>
-
                       <div className="space-y-1.5 mb-4 border-b border-dashed pb-4">
                         {bedText && (
                           <div className="flex items-center text-gray-600 text-sm">
@@ -214,10 +213,13 @@ export default function DetailView({ hotel, themeColor, onBack, rooms = [], isLo
                             </span>
                           )}
                         </div>
+
+                        {/* ✅ Choose button — sekarang pakai handleChooseRoom */}
                         <button
-                          className={`${themeColor} text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md hover:opacity-90 transition-all active:scale-95`}
+                          onClick={() => handleChooseRoom(room)}
+                          className={`${themeColor} text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md hover:opacity-90 transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2`}
                         >
-                          Book
+                          Choose
                         </button>
                       </div>
                     </div>

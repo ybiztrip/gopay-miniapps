@@ -361,10 +361,10 @@ function CalendarBottomSheet({ isOpen, onClose, checkIn, checkOut, onConfirm }) 
 // ============================================================
 // TRIGGER BUTTON — export utama yang dipakai di HomeView
 // ============================================================
-export default function DateRangePicker({ onConfirm }) {
+export default function DateRangePicker({ onConfirm, value }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [checkIn, setCheckIn] = useState(() => moment().startOf('day').toDate());
-  const [checkOut, setCheckOut] = useState(() => moment().add(1, 'days').startOf('day').toDate());
+  const [checkIn, setCheckIn] = useState(() => value?.checkIn || moment().startOf('day').toDate());
+  const [checkOut, setCheckOut] = useState(() => value?.checkOut || moment().add(1, 'days').startOf('day').toDate());
 
   const handleConfirm = ({ checkIn: ci, checkOut: co }) => {
     setCheckIn(ci);
